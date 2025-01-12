@@ -9,7 +9,6 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     // change this logic later to avoid file name conflicts
-    console.log("this is runing");
     cb(null, file.originalname);
   },
 });
