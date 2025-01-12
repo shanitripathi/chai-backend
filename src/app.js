@@ -25,4 +25,14 @@ app.use(express.static("public"));
 // middleware to parse cookies
 app.use(cookieParser());
 
+// routes
+
+import userRouter from "./routes/user.route.js";
+
+app.get("/", (req, res) => {
+  res.send("hello got it");
+});
+
+app.use("/api/v1/users", userRouter);
+
 export default app;
