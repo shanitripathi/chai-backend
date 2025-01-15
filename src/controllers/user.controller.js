@@ -3,6 +3,7 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiRespnose.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshTokens = async (user) => {
   try {
@@ -138,4 +139,61 @@ const loginUser = asyncHandler(async (req, res) => {
     .json(response);
 });
 
-export { registerUser, loginUser };
+const logoutUser = asyncHandler(async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.userId,
+    {
+      $unset: { refreshToken: "" },
+    },
+    {
+      new: true,
+    }
+  );
+
+  console.log("looged out userfsfdfad", user);
+  // clear the cookies
+  res.clearCookie("accessToken").clearCookie("refreshToken").status(204).send();
+});
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  //get the refresh token
+  // if the refresh token is valid then decode it
+  // get the user from it
+  // if the user exists then create a new access token
+  // save the access token in the cookie and send it back in the data.
+
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized");
+  }
+  const { _id: userId } = jwt.verify(
+    incomingRefreshToken,
+    process.env.REFRESH_TOKEN_SECRET
+  );
+  const user = await User.findById(userId);
+
+  console.log("this is the refresh token user", user);
+
+  if (!user || incomingRefreshToken !== user.refreshToken) {
+    throw new ApiError(401, "Invalid refresh token, please login again!");
+  }
+
+  const accessToken = user.generateAccessToken();
+  const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  const response = new ApiResponse(
+    200,
+    "Access token successfully generated",
+    accessToken
+  );
+  res
+    .status(response.statusCode)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .json(response);
+});
+
+export { registerUser, loginUser, logoutUser };
